@@ -223,7 +223,9 @@ def define_prior_distributions(chunk=data_dir+"par_prior.csv"):
 
 def ensemble_wofost(lon = 115.55, lat=38., start = dt.date(2008,10,12),
                     end = None, en_size = 3, prior_file = data_dir+"par_prior.csv", 
-                    weather_type = "NASA", weather_path = None, out_en_file = data_dir+"WOFOST_par_ensemble.npy", data_dir=None):
+                    weather_type = "NASA", weather_path = None, 
+                    out_en_file = data_dir+"WOFOST_par_ensemble.npy",
+                    data_dir=None, varnames = ["day", "TAGP", "LAI", "TWSO","DVS"]):
     """
     This is a function to generate a emsemble of WOFOST paramters and corresponding output.
     you need to specify Longitude (lon), Latitude (lat), 
@@ -269,7 +271,7 @@ def ensemble_wofost(lon = 115.55, lat=38., start = dt.date(2008,10,12),
         
     #home = os.path.dirname(os.path.realpath("__file__"))
     #data_dir = home+"/data/"
-    varnames = ["day", "TAGP", "LAI", "TWSO","DVS"]
+    #varnames = ["day", "TAGP", "LAI", "TWSO","DVS"]
     tmp={}
     
     cropfile = os.path.join(data_dir, 'WWH108.CAB')
@@ -375,6 +377,7 @@ def ensemble_wofost(lon = 115.55, lat=38., start = dt.date(2008,10,12),
         msg = "Reached maturity at {DOM} with max LAI of {LAIMAX} "\
     "and a yield of {TWSO} kg/ha."
         print(msg.format(**summary_output[0]))
+        import ipdb;ipdb.set_trace()
         for var in varnames:
             tmp[var] = [t[var] for t in output]
         theta_dict["LAI"]=tmp["LAI"][-181:]
