@@ -377,13 +377,14 @@ def ensemble_wofost(lon = 115.55, lat=38., start = dt.date(2008,10,12),
         msg = "Reached maturity at {DOM} with max LAI of {LAIMAX} "\
     "and a yield of {TWSO} kg/ha."
         print(msg.format(**summary_output[0]))
-        import ipdb;ipdb.set_trace()
+        
         for var in varnames:
             tmp[var] = [t[var] for t in output]
         theta_dict["LAI"]=tmp["LAI"][-181:]
         theta_dict["day"]=tmp["day"][-181:]
         theta_dict["Yield"]=tmp["TWSO"][-1]
         outdata.append(theta_dict)
+
     np.save(out_en_file, outdata)
 
 if __name__ == "__main__":
