@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""Some convenience files to grab meteorological data and convert
+to CABO format to use within WOFOST. So far, using ERA5
+"""
 import struct
 import logging 
 
@@ -34,6 +37,17 @@ LOG.propagate = False
 
 
 def humidity_from_dewpoint(tdew):
+    """Calculates humidity from dewpoint temperature
+    
+    Parameters
+    ----------
+    tdew : float
+        Dewpoint temperature in degrees Kelvin
+    
+    Returns
+    -------
+    Relative humidity
+    """
     tdew = tdew - 273.15
     tmp = (17.27 * tdew) / (tdew + 237.3)
     ea = 0.6108 * np.exp(tmp)
@@ -41,10 +55,25 @@ def humidity_from_dewpoint(tdew):
 
 
 def retrieve_pixel_value(lon, lat, data_source):
-    """Return floating-point value that corresponds to given point."""
+    """Retrieve pixel value from a GDAL-friendly dataset.
+
+    We assume the data type of the raster here!!!!
+    
+    Parameters
+    ----------
+    lon : float
+        Longitude in decimal degrees
+    lat : float
+        Latitude in decimal degrees
+    data_source : str
+        An existing GDAL-readable dataset. Can be remote.
+    
+    Returns
+    -------
+    int
+       The value of the pixel.
+    """
     dataset = gdal.Open(data_source)
-    if dataset is None:
-        raise Exception("Wrong data source! Please check it.")
 
     gt = dataset.GetGeoTransform()
     the_band = dataset.GetRasterBand(1)
@@ -59,7 +88,8 @@ def retrieve_pixel_value(lon, lat, data_source):
 
 def grab_era5(output_fname, year, mylat, mylon):
     """A function to downlaod the ERA5 data for one year for a given location.
-    Note that this takes a while!
+    Note that this takes a while! Also, you need to have the Copernicus Data
+    Service API configured for this to work.
     
     Parameters
     ----------
@@ -126,26 +156,47 @@ def grab_meteo_data(lat, lon, start_year, end_year, data_dir="./",
                     size=0.25, c1=-0.18, c2=-0.55, station_number=1,
                     dem_file="/vsicurl/http://www2.geog.ucl.ac.uk/" + 
                              "~ucfafyi/eles/global_dem.vrt"):
-    """Generate the CABO files to run WOFOST
-    
+    """Grab meteorological data and set it up to use with WOFOST.
+    At present, we download the data from ERA5, but other sources may
+    be considered.
+
     Parameters
     ----------
-    lat : [type]
-        [description]
-    lon : [type]
-        [description]
-    start_year : [type]
-        [description]
-    end_year : [type]
-        [description]
-    data_dir : [type]
-        [description]
-    """
+    lat : float
+        Latitude in decimal degrees.
+    lon : float
+        Longitude in decimal degrees.
+    start_year : int
+        The starting year
+    end_year : int
+        Tne end year (inclusive)
+    data_dir : str
+        The location where the ERA5 file will be downloaded to, and 
+        also where the CABO file will be written to
+    size : float
+        The grid size in degrees
+    c1 : float
+        I think this is a parameter related to the Armstrong exponent
+    c2 : float
+        I think this is a parameter related to the Armstrong exponent
+    station_number : int
+        A random number needed for CABO file
+    dem_file : str
+        A GDAL-readable file with a DEM to fish out the elevation of the site.
 
+    Returns
+    -------
+        dict
+        A dictionary with the relevant CABO files indexed by year.
+    """    
+    # This is the site name. Use the longitude/latitude to make it unique
     site_name = "%5.2f_%5.2f" % (int((lon+size/2.)/size)*size,
                                  int((lat+size/2.)/size)*size)
+    # Grab the elevation
     elevation = retrieve_pixel_value(lon, lat, dem_file)
+    # These are the parameters
     parnames = ["ssrd", "mx2t", "mn2t", "tp", "u10", "v10", "d2m"]
+    return_files = {}
     for year in range(start_year, end_year+1):
         cabo_file = Path(data_dir)/f"{site_name:s}.{year:d}"
         if not cabo_file.exists():
@@ -158,9 +209,12 @@ def grab_meteo_data(lat, lon, start_year, end_year, data_dir="./",
                 grab_era5(str(nc_file), year, lat, lon)
                 LOG.info(f"Done downloading...")
             LOG.info("Converting units to daily etc.")
+            # Open netCDF file, and stuff parameters into useful 
+            # data structure
             ds = Dataset(str(nc_file))
             variables = (ds.variables[var][:] for var in parnames)
             pars = ERAPARAMS(*variables)
+            # Check corners
             uplat = ds.variables["latitude"][:].max()
             dnlat = ds.variables["latitude"][:].min()
             uplon = ds.variables["longitude"][:].max()
@@ -168,6 +222,8 @@ def grab_meteo_data(lat, lon, start_year, end_year, data_dir="./",
             x = int((lon-dnlon+size/2)/size)
             y = int((lat-uplat-size/2)/-size)
             times = ds.variables["time"]
+            # Preprocess data: calculate daily means/aggregates
+            # Get the right units.
             rad = np.sum(pars.ssrd.reshape(-1, 24,
                          pars.ssrd.shape[1], 
                          pars.ssrd.shape[2]), axis=1)/1000.
@@ -218,6 +274,7 @@ def grab_meteo_data(lat, lon, start_year, end_year, data_dir="./",
             year_e = date2index(dt.datetime.strptime
                                 (f'{year:d}-12-31 00:00:00',
                                 '%Y-%m-%d %H:%M:%S'), times)
+            # Dump data file...
             with cabo_file.open("w") as fp:
                 fp.write(hdr_chunk)
                 for d in range(rad.shape[0]):
@@ -230,6 +287,8 @@ def grab_meteo_data(lat, lon, start_year, end_year, data_dir="./",
                             f"{round(prec[d,y,x]*10/10):4.1f}\n"
                             )
             LOG.info("Saved CABO file {cabo_file:s}.")
+    return_files[year] = cabo_file
+
 if __name__ == "__main__":
     lon = -0.1340
     lat = 51.5246
