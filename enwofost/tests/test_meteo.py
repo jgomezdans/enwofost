@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-
+import os
+from pathlib import Path
 
 import pytest
 import numpy as np
@@ -8,6 +9,10 @@ import subprocess
 
 from ..process_meteo_drivers import retrieve_pixel_value
 from ..process_meteo_drivers import humidity_from_dewpoint
+from ..process_meteo_drivers import grab_meteo_data
+
+
+DATA_PATH = os.path.dirname(__file__)
 
 def test_retrieve_dem():
     lon = -0.1340
@@ -23,3 +28,18 @@ def test_humidity_conversion():
     reference = 3.14 # say
     retval = humidity_from_dewpoint(tdew)
     assert (abs(reference-retval) < 0.1)
+
+
+def test_meteo_creation():
+    ref_cabo = Path(DATA_PATH)/"data/test_cabo_file"
+    test_cabo = np.loadtxt(str(ref_cabo), skiprows=19)
+    lon = -0.1340
+    lat = 51.5246
+    start_year = 2017
+    end_year = 2017
+    data_dir="tests/data/"
+    retval = grab_meteo_data(lat, lon, start_year, end_year, 
+                data_dir)
+    this_file = np.loadtxt(str(retval[2017]), skiprows=19)
+    assert np.allclose(test_cabo[:, 4], this_file[:, 4])
+    

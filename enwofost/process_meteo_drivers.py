@@ -144,7 +144,11 @@ def grab_era5(output_fname, year, mylat, mylon):
                 '18:00','19:00','20:00',
                 '21:00','22:00','23:00'
             ],
-            'area' : "%d/%d/%d/%d"%(int(mylat/10.+1.)*10,int(mylon/10.)*10,int(mylat/10.)*10,int(mylon/10.+1.)*10,),
+            #'area' : "%d/%d/%d/%d"%
+            # (int(mylat/10.+1.)*10,
+            # int(mylon/10.)*10,
+            # int(mylat/10.)*10,
+            # int(mylon/10.+1.)*10,),
             'area' : f"{int(mylat/10.+1.)*10:d}/{int(mylon/10.)*10:d}/" + \
                      f"{int(mylat/10.)*10:d}/{int(mylon/10.+1.)*10:d}",
             'format':'netcdf'
@@ -190,13 +194,14 @@ def grab_meteo_data(lat, lon, start_year, end_year, data_dir="./",
         A dictionary with the relevant CABO files indexed by year.
     """    
     # This is the site name. Use the longitude/latitude to make it unique
-    site_name = "%5.2f_%5.2f" % (int((lon+size/2.)/size)*size,
+    site_name = "%05.2f_%05.2f" % (int((lon+size/2.)/size)*size,
                                  int((lat+size/2.)/size)*size)
     # Grab the elevation
     elevation = retrieve_pixel_value(lon, lat, dem_file)
     # These are the parameters
     parnames = ["ssrd", "mx2t", "mn2t", "tp", "u10", "v10", "d2m"]
     return_files = {}
+    
     for year in range(start_year, end_year+1):
         cabo_file = Path(data_dir)/f"{site_name:s}.{year:d}"
         if not cabo_file.exists():
@@ -208,6 +213,7 @@ def grab_meteo_data(lat, lon, start_year, end_year, data_dir="./",
                 LOG.info(f"Starting downloading...")
                 grab_era5(str(nc_file), year, lat, lon)
                 LOG.info(f"Done downloading...")
+            LOG.info(f"Converting {str(nc_file):s} to CABO")
             LOG.info("Converting units to daily etc.")
             # Open netCDF file, and stuff parameters into useful 
             # data structure
@@ -222,6 +228,7 @@ def grab_meteo_data(lat, lon, start_year, end_year, data_dir="./",
             x = int((lon-dnlon+size/2)/size)
             y = int((lat-uplat-size/2)/-size)
             times = ds.variables["time"]
+            
             # Preprocess data: calculate daily means/aggregates
             # Get the right units.
             rad = np.sum(pars.ssrd.reshape(-1, 24,
@@ -279,20 +286,23 @@ def grab_meteo_data(lat, lon, start_year, end_year, data_dir="./",
                 fp.write(hdr_chunk)
                 for d in range(rad.shape[0]):
                     fp.write(f"{station_number:d}\t{year:d}\t{d+1:d}\t" + 
-                            f"{round(rad[d,y,x]):5d}\t" + 
+                            f"{round(rad[d,y,x]):5.1f}\t" + 
                             f"{round(tmin[d,y,x]*10/10):5.1f}\t" +
                             f"{round(tmax[d,y,x]*10/10):5.1f}\t" +
                             f"{round(hum[d,y,x]*1000/1000):5.3f}\t" +
                             f"{round(wind[d,y,x]*10/10):4.1f}\t" +
                             f"{round(prec[d,y,x]*10/10):4.1f}\n"
                             )
-            LOG.info("Saved CABO file {cabo_file:s}.")
-    return_files[year] = cabo_file
+            LOG.info(f"Saved CABO file {str(cabo_file):s}.")
+        return_files[year] = cabo_file
+    return return_files
 
 if __name__ == "__main__":
     lon = -0.1340
     lat = 51.5246
     start_year = 2017
-    end_year = 2018
-    data_dir="/home/ucfajlg/temp/"
-    grab_meteo_data(lat, lon, start_year, end_year, data_dir)
+    end_year = 2017
+    data_dir="tests/data/"
+    retval = grab_meteo_data(lat, lon, start_year, end_year, 
+                data_dir)
+    print(retval)

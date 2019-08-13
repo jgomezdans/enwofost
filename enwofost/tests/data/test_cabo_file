@@ -1,0 +1,23 @@
+*---------------------------------------------------
+* Station: 00.00_51.50
+* Year: 2017
+* Origin: ERA5-Reanalysis
+* Columns & units
+* ===================
+* 1. station number
+* 2. year
+* 3. Day of Year
+* 4. Irradiance   (kJ·m-2·d-1)
+* 5. Daily minimum temperature (degC)
+* 6. Daily maximum temperature (degC)
+* 7. Vapour pressure (kPa)
+* 8. Mean wind speed (m·s-1)
+* 9. Precipitation (mm·d-1)
+** WCCDESCRIPTION=00.00_51.50
+** WCCFORMAT=2
+** WCCYEARNR=2017
+1	2017	1	678.0	  4.0	  8.0	1.000	 1.0	 9.0
+1	2017	2	3877.0	 -2.0	  4.0	1.000	 3.0	 0.0
+1	2017	3	3503.0	 -2.0	  5.0	1.000	 4.0	 0.0
+1	2017	4	1959.0	  0.0	  8.0	1.000	 4.0	 0.0
+1	2017	5	4100.0	 -2.0	  4.0	1.000	 2.0	 0.0
