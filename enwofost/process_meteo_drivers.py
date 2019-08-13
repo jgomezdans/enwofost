@@ -102,6 +102,9 @@ def grab_era5(output_fname, year, mylat, mylon):
     mylon : float
         Longitude in decimal degrees.
     """
+    #[60, -10, 50, 2], # North, West, South, East
+    area = f"{int(mylat)+1:d}/{int(mylon)-1:d}/" + \
+           f"{int(mylat)-1:d}/{int(mylon)+1:d}"
     c = cdsapi.Client()                
     c.retrieve(
         'reanalysis-era5-single-levels',
@@ -149,8 +152,7 @@ def grab_era5(output_fname, year, mylat, mylon):
             # int(mylon/10.)*10,
             # int(mylat/10.)*10,
             # int(mylon/10.+1.)*10,),
-            'area' : f"{int(mylat/10.+1.)*10:d}/{int(mylon/10.)*10:d}/" + \
-                     f"{int(mylat/10.)*10:d}/{int(mylon/10.+1.)*10:d}",
+            'area' : area,
             'format':'netcdf'
         },
         output_fname)
@@ -300,9 +302,9 @@ def grab_meteo_data(lat, lon, start_year, end_year, data_dir="./",
 if __name__ == "__main__":
     lon = -0.1340
     lat = 51.5246
-    start_year = 2017
-    end_year = 2017
-    data_dir="tests/data/"
+    start_year = 2018
+    end_year = 2018
+    data_dir="/home/ucfajlg/temp/"
     retval = grab_meteo_data(lat, lon, start_year, end_year, 
                 data_dir)
     print(retval)
