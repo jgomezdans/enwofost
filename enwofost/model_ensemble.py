@@ -26,15 +26,7 @@ from pcse.models import Wofost71_PP
 from pcse.db import NASAPowerWeatherDataProvider
 
 LOG = logging.getLogger(__name__)
-LOG.setLevel(logging.DEBUG)
-if not LOG.handlers:
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - ' +
-                                  '%(levelname)s - %(message)s')
-    ch.setFormatter(formatter)
-    LOG.addHandler(ch)
-LOG.propagate = False
+
 
 
 def define_prior_distributions(chunk,tsum1=None,tsum2=None):
@@ -154,17 +146,33 @@ def set_ensemble_parameters(en_size, prior_list,
         ##########################################################################
     return theta_dict
 
-
-def ensemble_wofost(lon, lat,  start_time, parameter_priors,
-                    end_time = None, ensemble_size = 3,
-                    meteo_src = "NASA", weather_path = None, 
-                    out_en_file = None, data_dir=None):
-    # Sanity check tests
-    assert -180 <= lon <= 180, f"Longitude {lon:g} has to be sensible!"
-    assert -90 <= lat <= 90, f"Latitude {lat:g} has to be sensible!"
-    if end_time is not None:
-        assert end_time > start_time, (f"End time {end_time:s} " + 
-                    f"has to be later than start {start_time:s}")
+def create_weather(lat, lon, start_time, end_time, meteo_src):
+    """Returns a PCSE weather object based on location, times and data origin.
+    
+    Parameters
+    ----------
+    lat : float
+        Latitude in decimal degrees
+    lon : float
+        Longitude in decimal degrees
+    start_time : datetime
+        Start time
+    end_time : datetime
+        End time
+    meteo_src : Meteo source
+        Source of meteo data. Can be either "ERA5", "NASA" or a path to
+        a CABO file.
+    
+    Returns
+    -------
+    pcse.weather
+        Weather object
+    
+    Raises
+    ------
+    IOError
+        If CABO file doesn't exist.
+    """
     if meteo_src == "NASA":
         LOG.info("Using NASA Power meteo data")
         weather = NASAPowerWeatherDataProvider(latitude=lat, longitude=lon)
@@ -182,3 +190,18 @@ def ensemble_wofost(lon, lat,  start_time, parameter_priors,
                         + f", but it doesn't exist!")
         weather = CABOWeatherDataProvider(meteo_file.name,
                  fpath=str(meteo_file))
+    return weather
+
+def ensemble_wofost(lon, lat,  start_time, parameter_priors,
+                    crop_param_file,
+                    end_time = None, ensemble_size = 3,
+                    meteo_src = "NASA", weather_path = None, 
+                    out_en_file = None, data_dir=None):
+    # Sanity check tests
+    assert -180 <= lon <= 180, f"Longitude {lon:g} has to be sensible!"
+    assert -90 <= lat <= 90, f"Latitude {lat:g} has to be sensible!"
+    if end_time is not None:
+        assert end_time > start_time, (f"End time {end_time:s} " + 
+                    f"has to be later than start {start_time:s}")
+    weather = create_weather(lat, lon, start_time, end_time, meteo_src)    
+    crop_file = CABOFileReader(crop_param_file)
