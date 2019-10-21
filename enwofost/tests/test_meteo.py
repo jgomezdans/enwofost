@@ -35,11 +35,12 @@ def test_meteo_creation():
     test_cabo = np.loadtxt(str(ref_cabo), skiprows=19)
     lon = -0.1340
     lat = 51.5246
-    start_year = 2017
-    end_year = 2017
+    year = 2017
+
     data_dir="tests/data/"
-    retval = grab_meteo_data(lat, lon, start_year, end_year, 
-                data_dir)
-    this_file = np.loadtxt(str(retval[2017]), skiprows=19)
+    retval = grab_meteo_data(lat, lon, year, "050_10d_2017.nc", 
+                             data_dir=data_dir)
+
+    this_file = np.loadtxt(retval.as_posix(), skiprows=19)
     assert np.allclose(test_cabo[:, 4], this_file[:, 4])
     
