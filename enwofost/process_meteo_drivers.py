@@ -151,8 +151,8 @@ def grab_era5(year, output_folder, region, mylat, mylon):
         (Path(output_folder)/f"{region:s}_{year:d}.nc").as_posix())
 
 
-def era_to_cabo(site_name, year, lon, lat, cabo_file, nc_file, parnames,
-                size=0.25):
+def era_to_cabo(site_name, year, lon, lat, elev, cabo_file, nc_file, parnames,
+                size=0.25, c1=-0.18, c2=-0.55):
     """Convert ERA5 dataset to CABO format
     
     Parameters
@@ -263,6 +263,8 @@ def era_to_cabo(site_name, year, lon, lat, cabo_file, nc_file, parnames,
         ** WCCDESCRIPTION={site_name:s}
         ** WCCFORMAT=2
         ** WCCYEARNR={year:d}
+        *------------------------------------------------------------*
+        {lon:.2f}  {lat:.2f}  {elev:.2f} {c1:.2f}  {c2:.2f}
         """
     hdr_chunk = dedent(hdr_chunk)
     # Dump data file...
@@ -350,7 +352,7 @@ def grab_meteo_data(
             LOG.info(f"Done downloading...")
         LOG.info(f"Converting {str(nc_file):s} to CABO")
         LOG.info("Converting units to daily etc.")
-        era_to_cabo(site_name, year, lon, lat,
+        era_to_cabo(site_name, year, lon, lat, elevation,
             cabo_file, nc_file, parnames,size=size)
     return cabo_file
     

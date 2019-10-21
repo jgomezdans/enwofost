@@ -32,7 +32,7 @@ def test_humidity_conversion():
 
 def test_meteo_creation():
     ref_cabo = Path(DATA_PATH)/"data/test_cabo_file"
-    test_cabo = np.loadtxt(str(ref_cabo), skiprows=19)
+    test_cabo = np.loadtxt(str(ref_cabo), skiprows=20)
     lon = -0.1340
     lat = 51.5246
     year = 2017
@@ -41,6 +41,6 @@ def test_meteo_creation():
     retval = grab_meteo_data(lat, lon, year, "050_10d_2017.nc", 
                              data_dir=data_dir)
 
-    this_file = np.loadtxt(retval.as_posix(), skiprows=19)
+    this_file = np.loadtxt(retval.as_posix(), skiprows=20)
     assert np.allclose(test_cabo[:, 4], this_file[:, 4])
     
